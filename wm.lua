@@ -30,7 +30,7 @@ local floatingWindows = {}
 --- @type workspace|nil
 local currentWorkspace = nil
 
--- wm only work on one screen for now
+-- wm only works on one screen
 local mainScreen = hs.screen.mainScreen()
 
 local margin = 5
@@ -55,12 +55,14 @@ function F.workspaceString(workspace)
   main: %s
   others:
     %s
+  tempLarge: %s
 ]]
   local main = workspace.layout.main and F.windowString(workspace.layout.main) or 'nil'
   --- @type string[]
   --- @diagnostic disable-next-line: assign-type-mismatch
   local others = hs.fnutils.map(workspace.layout.others, F.windowString)
-  return string.format(template, workspace.name, main, table.concat(others, '\n\t'))
+  local tempLarge = workspace.layout.tempLarge and F.windowString(workspace.layout.tempLarge) or 'nil'
+  return string.format(template, workspace.name, main, table.concat(others, '\n\t'), tempLarge)
 end
 
 -- to resolve issue with some apps like Firefox
@@ -100,17 +102,22 @@ local floatApps = {
   'com.apple.systempreferences'
 }
 
+-- get the bundle id of a window
+--- @param win hs.window
+--- @return string | nil
+function F.windowBundleID(win)
+  local app = win:application()
+  if not app then return nil end
+  return app:bundleID()
+end
+
 -- check if a window should be floating by default
 --- @param win hs.window
 --- @return boolean
 function F.isFloat(win)
-  if hs.fnutils.contains(floatWindows, win:title()) then
-    return true
-  end
-
-  local app = win:application()
-  if not app then return false end
-  local bundleID = app:bundleID()
+  if hs.fnutils.contains(floatWindows, win:title()) then return true end
+  local bundleID = F.windowBundleID(win)
+  if not bundleID then return false end
   return hs.fnutils.contains(floatApps, bundleID)
 end
 
@@ -131,9 +138,8 @@ local appWorkspace = {
 --- @param win hs.window
 --- @return string | nil
 function F.defaultWorkspaceOfWindow(win)
-  local app = win:application()
-  if not app then return nil end
-  local bundleID = app:bundleID()
+  local bundleID = F.windowBundleID(win)
+  if not bundleID then return nil end
   return appWorkspace[bundleID]
 end
 
@@ -166,7 +172,8 @@ function F.createWorkspace(windows, name)
     if F.isFloat(win) then
       floatingWindows[#floatingWindows + 1] = win
     elseif defaultWorkspace and defaultWorkspace ~= name then
-      F.sendWindowToWorkspace(win, defaultWorkspace)
+      local targetWorkspace = F.getWorkspace(defaultWorkspace)
+      F.addWindowToWorkspace(targetWorkspace, win)
     elseif F.isManagable(win) then
       manageWindows[#manageWindows + 1] = win
     end
@@ -175,7 +182,6 @@ function F.createWorkspace(windows, name)
   if #manageWindows == 0 then
     return workspace
   end
-  log.i('found ' .. #manageWindows .. ' manageable windows')
   local focusedWindow = hs.window.frontmostWindow()
   for _, win in pairs(manageWindows) do
     local id = win:id()
@@ -223,7 +229,7 @@ end
 --- @param win hs.window | nil | false window to focus, if nil focus main, if false dont change focus
 --- @return nil
 function F.showWorkspace(workspace, win)
-  log.i('showing ', F.workspaceString(workspace))
+  log.i('try to show', F.workspaceString(workspace))
   local text = hs.styledtext.new(
     workspace.name,
     {
@@ -232,7 +238,10 @@ function F.showWorkspace(workspace, win)
   )
   menubar:setTitle(text)
   local layout = workspace.layout
+  -- if there is no main window, nothing to show
   if not layout.main then return end
+
+  -- arrange windows
   local screenFrame = mainScreen:frame()
   local width = screenFrame.w - 3 * margin
   local height = screenFrame.h - 2 * margin
@@ -249,7 +258,7 @@ function F.showWorkspace(workspace, win)
     mainFrame.x = screenFrame.x + margin
     mainFrame.w = width
   elseif layout.tempLarge and layout.tempLarge == layout.main then
-    mainFrame.w = math.floor(width * 0.85)
+    mainFrame.w = math.floor(width * 0.9)
     mainFrame.x = math.floor(screenFrame.w - margin - mainFrame.w)
   end
 
@@ -272,12 +281,11 @@ function F.showWorkspace(workspace, win)
     F.setFrame(win, othersFrame)
   end
 
+  -- focus window
   if win == false then
     return
   elseif win == nil then
-    if layout.main then
-      layout.main:focus()
-    end
+    if layout.main then layout.main:focus() end
   else
     win:focus()
   end
@@ -289,24 +297,32 @@ function F.showWorkspace(workspace, win)
 end
 
 -- switch to a workspace
+-- first hide current workspace then show the target workspace
 --- @param name string
 --- @param win hs.window | nil window to focus, if nil focus main, if false dont change focus
 function F.switchToWorkspace(name, win)
+  -- switch to current workspace, do nothing
   if currentWorkspace and currentWorkspace.name == name then return end
+
   local workspace = workspaces[name]
   if not workspace then
-    log.i('workspace not found, creating new one')
+    log.i('switchToWorkspace: target workspace not exists, creating new one')
     workspace = F.createWorkspace({}, name)
   end
+
   if currentWorkspace then
     F.hideWorkspace(currentWorkspace)
   end
+
   currentWorkspace = workspace
   F.showWorkspace(workspace, win)
 end
 
 local filter = wf.new(true)
 
+--- add window to workspace
+--- @param workspace workspace
+--- @param win hs.window
 function F.addWindowToWorkspace(workspace, win)
   local layout = workspace.layout
   if layout.main then
@@ -318,7 +334,7 @@ end
 
 -- find window in current workspace
 --- @param win hs.window
---- @return number index in others (0 if main, -1 if not found)
+--- @return number index index in others (0 if main, -1 if not found)
 function F.findWindowInCurrentWorkspace(win)
   if not currentWorkspace then return -1 end
   local layout = currentWorkspace.layout
@@ -335,10 +351,12 @@ end
 -- remove window from workspace
 --- @param workspace workspace
 --- @param win hs.window
---- @return hs.window | nil the window to focus, nil if no window to focus
+--- @return hs.window | nil win the window to focus after remove, nil if no window to focus
 function F.removeWindowFromWorkspace(workspace, win)
   local layout = workspace.layout
   if layout.main and layout.main == win then
+    -- remove main window
+    -- should focus on the new main window after remove
     if #layout.others > 0 then
       F.popOthersToMain(layout)
     else
@@ -346,22 +364,23 @@ function F.removeWindowFromWorkspace(workspace, win)
     end
     return layout.main
   else
-    log.i('try to remove from others')
     local index = hs.fnutils.indexOf(layout.others, win)
     if index then
-      log.i('found in others, removing')
       table.remove(layout.others, index)
-      if 1 <= index and index <= #layout.others then
-        return layout.others[index]
-      else
+      if #layout.others == 0 then
         return layout.main
+      elseif index > #layout.others then
+        return layout.others[#layout.others]
+      else
+        return layout.others[index]
       end
+    else
+      return nil
     end
   end
 end
 
 -- find which workspace a window belongs to
--- return the workspace and the index in others (0 if main, -1 if not found)
 --- @param win hs.window
 --- @return workspace|nil
 function F.findWindowInWorkspaces(win)
@@ -380,7 +399,6 @@ end
 
 --- @param win hs.window
 function F.onWindowDestroyed(win)
-  log.i(string.format('window destroyed: \'%s\' (id=%d)', win:title(), win:id()))
   if not currentWorkspace then return end
   local workspace = F.findWindowInWorkspaces(win)
   if not workspace then return end
@@ -392,59 +410,57 @@ end
 
 --- @param win hs.window
 function F.onWindowMoved(win)
-  if not F.isManagable(win) then return end
-  log.i(string.format('window moved: \'%s\' (id=%d)', win:title(), win:id()))
   if not currentWorkspace then return end
-  local workspace = F.findWindowInWorkspaces(win)
-  if not workspace then return end
-  if workspace == currentWorkspace then
-    F.showWorkspace(currentWorkspace, false)
-  end
+  local index = F.findWindowInCurrentWorkspace(win)
+  if index == -1 then return end
+  F.showWorkspace(currentWorkspace, false)
 end
 
 --- @param win hs.window
 function F.onWindowFocused(win)
   if not F.isManagable(win) then return end
-  log.i(string.format('window focused: \'%s\' (id=%d)', win:title(), win:id()))
   local index = F.findWindowInCurrentWorkspace(win)
-  if index ~= -1 then return end
-  local workspace = F.findWindowInWorkspaces(win)
-  if not workspace then return end
-  F.switchToWorkspace(workspace.name, win)
+  if index == -1 then
+    -- focus a window not in current workspace
+    -- switch to the workspace of that window
+    local workspace = F.findWindowInWorkspaces(win)
+    if not workspace then return end
+    F.switchToWorkspace(workspace.name, win)
+  end
 end
 
--- send window to another workspace
---- @param win hs.window
+-- get workspace by name, create a new one if not exists
 --- @param name string
-function F.sendWindowToWorkspace(win, name)
-  if currentWorkspace and currentWorkspace.name == name then return end
-
+--- @return workspace
+function F.getWorkspace(name)
   local workspace = workspaces[name]
   if not workspace then
-    log.i('workspace not found, creating new one')
-    workspace = F.createWorkspace({ win }, name)
-  else
-    log.i('adding window to existing workspace')
-    F.addWindowToWorkspace(workspace, win)
+    workspace = F.createWorkspace({}, name)
   end
-  log.i('after adding, workspace is: ' .. F.workspaceString(workspace))
+  return workspace
+end
 
-  F.hideWindow(win)
-
-  if currentWorkspace then
-    local toFocus = F.removeWindowFromWorkspace(currentWorkspace, win)
-    F.showWorkspace(currentWorkspace, toFocus)
-  end
+-- move window from current workspace to another workspace
+--- @param win hs.window
+--- @param name string
+--- @return nil win window to focus after move
+function F.moveWindowToWorkspace(win, name)
+  if not currentWorkspace then return end
+  if currentWorkspace.name == name then return end
+  local targetWorkspace = F.getWorkspace(name)
+  F.addWindowToWorkspace(targetWorkspace, win)
+  return F.removeWindowFromWorkspace(currentWorkspace, win)
 end
 
 -- send current focused window to another workspace
 --- @param name string
+--- @return hs.window | nil win the window to focus after move
 function F.sendToWorkspace(name)
-  log.i('try to send window to workspace ' .. name)
   local win = hs.window.focusedWindow()
   if not win then return end
 
-  F.sendWindowToWorkspace(win, name)
+  F.hideWindow(win)
+  return F.moveWindowToWorkspace(win, name)
 end
 
 --- @param win hs.window
@@ -456,7 +472,8 @@ function F.onWindowCreated(win)
   else
     local targetWorkspaceName = F.defaultWorkspaceOfWindow(win)
     if targetWorkspaceName then
-      F.sendToWorkspace(targetWorkspaceName)
+      local targetWorkspace = F.getWorkspace(targetWorkspaceName)
+      F.addWindowToWorkspace(targetWorkspace, win)
       return
     end
     F.addWindowToWorkspace(currentWorkspace, win)
@@ -612,7 +629,9 @@ function F.workspaceHotkeys(name)
   end)
 
   bind({ 'option', 'shift' }, name, function()
-    F.sendToWorkspace(name)
+    if not currentWorkspace then return end
+    local toFocus = F.sendToWorkspace(name)
+    F.showWorkspace(currentWorkspace, toFocus)
   end)
 end
 
