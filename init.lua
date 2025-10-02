@@ -62,7 +62,7 @@ wm.floatApps = {
 }
 
 wm.appWorkspace = {
-  ['org.gnu.Emacs'] = '8',
+  ['org.gnu.Emacs'] = '7',
 }
 
 wm.workspaces = { 'U', 'I', 'O', 'P', '7', '8', '9', '0' }
