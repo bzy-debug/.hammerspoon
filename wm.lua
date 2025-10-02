@@ -482,6 +482,7 @@ function F.onWindowCreated(win)
     if targetWorkspaceName then
       local targetWorkspace = F.getWorkspace(targetWorkspaceName)
       F.addWindowToWorkspace(targetWorkspace, win)
+      F.showWorkspace(targetWorkspace, win)
       return
     end
     F.addWindowToWorkspace(currentWorkspace, win)
