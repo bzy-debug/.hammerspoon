@@ -316,12 +316,14 @@ function F.switchToWorkspace(name, win)
     workspace = F.createWorkspace({}, name)
   end
 
-  if currentWorkspace then
-    F.hideWorkspace(currentWorkspace)
-  end
-
+  -- first show new workspace then hide old workspace to reduce flicker
+  local lastCurrentWorkspace = currentWorkspace
   currentWorkspace = workspace
   F.showWorkspace(workspace, win)
+
+  if lastCurrentWorkspace then
+    F.hideWorkspace(lastCurrentWorkspace)
+  end
 end
 
 local filter = wf.new(true)
