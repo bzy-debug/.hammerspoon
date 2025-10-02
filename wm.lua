@@ -105,15 +105,6 @@ function F.setFrame(win, frame)
   end
 end
 
--- move the first window in others to main
---- @param layout mainLayout
---- @return nil
-function F.popOthersToMain(layout)
-  if #layout.others == 0 then return end
-  layout.main = layout.others[1]
-  table.remove(layout.others, 1)
-end
-
 -- get the bundle id of a window
 --- @param win hs.window
 --- @return string | nil
@@ -174,8 +165,6 @@ function F.initWorkspace()
   local windows = hs.window.allWindows()
   local workspace = F.newWorkspace(name)
 
-  workspaces[name] = workspace
-
   local focusedWindow = hs.window.frontmostWindow()
 
   if focusedWindow and F.isManagable(focusedWindow) then
@@ -185,6 +174,7 @@ function F.initWorkspace()
   for _, win in pairs(windows) do
     if F.isManagable(win) then
       local w = F.tryToAddWindowToWorkspace(workspace, win)
+      -- if window is added to its default workspace, hide it from current workspace
       if w and w ~= workspace then
         F.hideWindow(win)
       end
@@ -377,10 +367,9 @@ function F.removeWindowFromWorkspace(workspace, win)
     layout.tempLarge = nil
   end
   if layout.main and layout.main == win then
-    -- remove main window
-    -- should focus on the new main window after remove
     if #layout.others > 0 then
-      F.popOthersToMain(layout)
+      layout.main = layout.others[1]
+      table.remove(layout.others, 1)
     else
       layout.main = nil
     end
