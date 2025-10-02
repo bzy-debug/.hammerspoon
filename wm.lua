@@ -11,6 +11,18 @@ local bind = hs.hotkey.bind
 -- switch between workspaces is instant
 -- option-tab only switches between windows in current workspace
 
+-- settings
+M.margin = 5
+
+M.floatWindows = {
+  'Picture-in-Picture'
+}
+
+M.floatApps = {
+  'com.apple.systempreferences',
+  'com.apple.SystemProfiler',
+}
+
 --- Types
 --- @class workspace
 --- @field name string
@@ -32,8 +44,6 @@ local currentWorkspace = nil
 
 -- wm only works on one screen
 local mainScreen = hs.screen.mainScreen()
-
-local margin = 5
 
 local log = hs.logger.new('wm')
 
@@ -94,15 +104,6 @@ function F.popOthersToMain(layout)
   table.remove(layout.others, 1)
 end
 
-local floatWindows = {
-  'Picture-in-Picture'
-}
-
-local floatApps = {
-  'com.apple.systempreferences',
-  'com.apple.SystemProfiler',
-}
-
 -- get the bundle id of a window
 --- @param win hs.window
 --- @return string | nil
@@ -116,10 +117,10 @@ end
 --- @param win hs.window
 --- @return boolean
 function F.isFloat(win)
-  if hs.fnutils.contains(floatWindows, win:title()) then return true end
+  if hs.fnutils.contains(M.floatWindows, win:title()) then return true end
   local bundleID = F.windowBundleID(win)
   if not bundleID then return false end
-  return hs.fnutils.contains(floatApps, bundleID)
+  return hs.fnutils.contains(M.floatApps, bundleID)
 end
 
 --- @param win hs.window
@@ -244,33 +245,33 @@ function F.showWorkspace(workspace, win)
 
   -- arrange windows
   local screenFrame = mainScreen:frame()
-  local width = screenFrame.w - 3 * margin
-  local height = screenFrame.h - 2 * margin
+  local width = screenFrame.w - 3 * M.margin
+  local height = screenFrame.h - 2 * M.margin
   local frameWidth = math.floor(width / 2)
 
   local mainFrame = geo.rect(
-    screenFrame.w - margin - frameWidth,
-    screenFrame.y + margin,
+    screenFrame.w - M.margin - frameWidth,
+    screenFrame.y + M.margin,
     frameWidth,
     height
   )
 
   if #layout.others == 0 then
-    mainFrame.x = screenFrame.x + margin
+    mainFrame.x = screenFrame.x + M.margin
     mainFrame.w = width
   elseif layout.tempLarge and layout.tempLarge == layout.main then
     mainFrame.w = math.floor(width * 0.9)
-    mainFrame.x = math.floor(screenFrame.w - margin - mainFrame.w)
+    mainFrame.x = math.floor(screenFrame.w - M.margin - mainFrame.w)
   end
 
   F.setFrame(layout.main, mainFrame)
 
-  local otherHeight = math.floor((height - margin * (#layout.others - 1)) / #layout.others)
-  local otherX = screenFrame.x + margin
+  local otherHeight = math.floor((height - M.margin * (#layout.others - 1)) / #layout.others)
+  local otherX = screenFrame.x + M.margin
   for i, win in pairs(layout.others) do
     local othersFrame = geo.rect(
       otherX,
-      screenFrame.y + margin * i + (otherHeight * (i - 1)),
+      screenFrame.y + M.margin * i + (otherHeight * (i - 1)),
       frameWidth,
       otherHeight
     )
