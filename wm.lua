@@ -362,6 +362,9 @@ end
 --- @return hs.window | nil win the window to focus after remove, nil if no window to focus
 function F.removeWindowFromWorkspace(workspace, win)
   local layout = workspace.layout
+  if layout.tempLarge == win then
+    layout.tempLarge = nil
+  end
   if layout.main and layout.main == win then
     -- remove main window
     -- should focus on the new main window after remove
