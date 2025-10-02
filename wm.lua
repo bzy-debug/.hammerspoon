@@ -13,16 +13,15 @@ local bind = hs.hotkey.bind
 -- option-tab only switches between windows in current workspace
 
 -- settings
+
+-- margin for window snapping
 M.margin = 5
 
-M.floatWindows = {
-  'Picture-in-Picture'
-}
+-- windows with these titles will float by default
+M.floatWindows = {}
 
-M.floatApps = {
-  'com.apple.systempreferences',
-  'com.apple.SystemProfiler',
-}
+-- applications with these bundleIDs will float by default
+M.floatApps = {}
 
 --- Types
 --- @class workspace

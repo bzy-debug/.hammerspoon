@@ -46,6 +46,17 @@ hs.window.animationDuration = 0
 
 local wm = require('wm')
 
+wm.margin = 5
+
+wm.floatWindows = {
+  'Picture-in-Picture'
+}
+
+wm.floatApps = {
+  'com.apple.systempreferences',
+  'com.apple.SystemProfiler',
+}
+
 wm:init()
 
 hs.alert.show('Config loaded', hs.alert.defaultStyle, hs.screen.mainScreen(), 0.3)
