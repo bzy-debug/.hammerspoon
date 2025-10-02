@@ -3,6 +3,7 @@ local F = {}
 
 local wf = hs.window.filter
 local geo = hs.geometry
+local fnutils = hs.fnutils
 local bind = hs.hotkey.bind
 
 -- simple window manager
@@ -70,7 +71,7 @@ function F.workspaceString(workspace)
   local main = workspace.layout.main and F.windowString(workspace.layout.main) or 'nil'
   --- @type string[]
   --- @diagnostic disable-next-line: assign-type-mismatch
-  local others = hs.fnutils.map(workspace.layout.others, F.windowString)
+  local others = fnutils.map(workspace.layout.others, F.windowString)
   local tempLarge = workspace.layout.tempLarge and F.windowString(workspace.layout.tempLarge) or 'nil'
   return string.format(template, workspace.name, main, table.concat(others, '\n\t'), tempLarge)
 end
@@ -117,10 +118,10 @@ end
 --- @param win hs.window
 --- @return boolean
 function F.isFloat(win)
-  if hs.fnutils.contains(M.floatWindows, win:title()) then return true end
+  if fnutils.contains(M.floatWindows, win:title()) then return true end
   local bundleID = F.windowBundleID(win)
   if not bundleID then return false end
-  return hs.fnutils.contains(M.floatApps, bundleID)
+  return fnutils.contains(M.floatApps, bundleID)
 end
 
 --- @param win hs.window
@@ -343,7 +344,7 @@ function F.findWindowInCurrentWorkspace(win)
   if layout.main and layout.main == win then
     return 0
   end
-  local index = hs.fnutils.indexOf(layout.others, win)
+  local index = fnutils.indexOf(layout.others, win)
   if index then
     return index
   end
@@ -366,7 +367,7 @@ function F.removeWindowFromWorkspace(workspace, win)
     end
     return layout.main
   else
-    local index = hs.fnutils.indexOf(layout.others, win)
+    local index = fnutils.indexOf(layout.others, win)
     if index then
       table.remove(layout.others, index)
       if #layout.others == 0 then
@@ -391,7 +392,7 @@ function F.findWindowInWorkspaces(win)
     if layout.main and layout.main == win then
       return workspace
     end
-    local index = hs.fnutils.indexOf(layout.others, win)
+    local index = fnutils.indexOf(layout.others, win)
     if index then
       return workspace
     end
@@ -583,7 +584,7 @@ end
 local switchfilter = wf.new(function(win)
   local index = F.findWindowInCurrentWorkspace(win)
   if index == -1 then
-    return hs.fnutils.contains(floatingWindows, win)
+    return fnutils.contains(floatingWindows, win)
   else
     return true
   end
@@ -604,7 +605,7 @@ function F.toggleFloatWindow()
   local win = hs.window.focusedWindow()
   if not win then return end
 
-  local index = hs.fnutils.indexOf(floatingWindows, win)
+  local index = fnutils.indexOf(floatingWindows, win)
 
   if index then
     -- already floating, make it managed
