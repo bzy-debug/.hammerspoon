@@ -99,7 +99,8 @@ local floatWindows = {
 }
 
 local floatApps = {
-  'com.apple.systempreferences'
+  'com.apple.systempreferences',
+  'com.apple.SystemProfiler',
 }
 
 -- get the bundle id of a window
