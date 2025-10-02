@@ -18,10 +18,21 @@ local bind = hs.hotkey.bind
 M.margin = 5
 
 -- windows with these titles will float by default
+--- @type string[]
 M.floatWindows = {}
 
 -- applications with these bundleIDs will float by default
+--- @type string[]
 M.floatApps = {}
+
+-- the default workspace for app
+-- app id -> workspace name
+--- @type table<string, string>
+M.appWorkspace = {}
+
+-- all workspaces
+--- @type string[]
+M.workspaces = {}
 
 --- Types
 --- @class workspace
@@ -129,20 +140,13 @@ function F.isManagable(win)
   return win:isVisible() and win:isStandard()
 end
 
--- the default workspace for app
--- app id -> workspace name
---- @type table<string, string>
-local appWorkspace = {
-  ['org.gnu.Emacs'] = '8',
-}
-
 -- get the default workspace name for a window
 --- @param win hs.window
 --- @return string | nil
 function F.defaultWorkspaceOfWindow(win)
   local bundleID = F.windowBundleID(win)
   if not bundleID then return nil end
-  return appWorkspace[bundleID]
+  return M.appWorkspace[bundleID]
 end
 
 -- create workspace from windows
@@ -638,7 +642,19 @@ function F.workspaceHotkeys(name)
 end
 
 function M:init()
-  for _, k in pairs({ 'U', 'I', 'O', 'P', '7', '8', '9', '0' }) do
+  -- check if workspaces are defined
+  if #M.workspaces == 0 then
+    error('no workspaces defined')
+  end
+
+  -- check if appWorkspace are valid
+  for app, ws in pairs(M.appWorkspace) do
+    if not fnutils.contains(M.workspaces, ws) then
+      error(string.format('appWorkspace %s -> %s is invalid', app, ws))
+    end
+  end
+
+  for _, k in pairs(M.workspaces) do
     F.workspaceHotkeys(k)
   end
 
@@ -665,7 +681,7 @@ function M:init()
     }
   )
   local windows = hs.window.allWindows()
-  currentWorkspace = F.createWorkspace(windows, 'U')
+  currentWorkspace = F.createWorkspace(windows, M.workspaces[1])
   F.showWorkspace(currentWorkspace)
 end
 

@@ -57,6 +57,12 @@ wm.floatApps = {
   'com.apple.SystemProfiler',
 }
 
+wm.appWorkspace = {
+  ['org.gnu.Emacs'] = '8',
+}
+
+wm.workspaces = { 'U', 'I', 'O', 'P', '7', '8', '9', '0' }
+
 wm:init()
 
 hs.alert.show('Config loaded', hs.alert.defaultStyle, hs.screen.mainScreen(), 0.3)
