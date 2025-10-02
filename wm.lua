@@ -120,12 +120,30 @@ local function isManagable(win)
   return win:isVisible() and win:isStandard()
 end
 
+-- the default workspace for app
+-- app id -> workspace name
+--- @type table<string, string>
+local appWorkspace = {
+  ['org.gnu.Emacs'] = '8',
+}
+
+-- get the default workspace name for a window
+--- @param win hs.window
+--- @return string | nil
+local function defaultWorkspaceOfWindow(win)
+  local app = win:application()
+  if not app then return nil end
+  local bundleID = app:bundleID()
+  return appWorkspace[bundleID]
+end
+
+
 -- create workspace from windows
 -- the main window is the focused window
 --- @param windows hs.window[]
 --- @param name string
 --- @return workspace
-local function createWorkspace(windows, name)
+function M.createWorkspace(windows, name)
   --- @type mainLayout
   local mainLayout = {
     main = nil,
@@ -142,14 +160,19 @@ local function createWorkspace(windows, name)
   workspaces[name] = workspace
 
   --- @type hs.window[]
-  --- @diagnostic disable-next-line: assign-type-mismatch
-  local manageWindows = hs.fnutils.ifilter(windows, function(win)
+  local manageWindows = {}
+
+  for _, win in pairs(windows) do
+    local defaultWorkspace = defaultWorkspaceOfWindow(win)
     if isFloat(win) then
       floatingWindows[#floatingWindows + 1] = win
-      return false
+    elseif defaultWorkspace and defaultWorkspace ~= name then
+      M.sendWindowToWorkspace(win, defaultWorkspace)
+    elseif isManagable(win) then
+      manageWindows[#manageWindows + 1] = win
     end
-    return isManagable(win)
-  end)
+  end
+
   if #manageWindows == 0 then
     return workspace
   end
@@ -275,7 +298,7 @@ local function switchToWorkspace(name, win)
   local workspace = workspaces[name]
   if not workspace then
     log.i('workspace not found, creating new one')
-    workspace = createWorkspace({}, name)
+    workspace = M.createWorkspace({}, name)
   end
   if currentWorkspace then
     hideWorkspace(currentWorkspace)
@@ -310,18 +333,6 @@ local function findWindowInCurrentWorkspace(win)
     return index
   end
   return -1
-end
-
---- @param win hs.window
-local function onWindowCreated(win)
-  if not isManagable(win) then return end
-  if not currentWorkspace then return end
-  if isFloat(win) then
-    floatingWindows[#floatingWindows + 1] = win
-  else
-    addWindowToWorkspace(currentWorkspace, win)
-  end
-  showWorkspace(currentWorkspace, win)
 end
 
 -- remove window from workspace
@@ -405,19 +416,16 @@ local function onWindowFocused(win)
   switchToWorkspace(workspace.name, win)
 end
 
--- send current focused window to another workspace
+-- send window to another workspace
+--- @param win hs.window
 --- @param name string
-local function sendToWorkspace(name)
-  log.i('try to send window to workspace ' .. name)
-  local win = hs.window.focusedWindow()
-  if not win then return end
-
+function M.sendWindowToWorkspace(win, name)
   if currentWorkspace and currentWorkspace.name == name then return end
 
   local workspace = workspaces[name]
   if not workspace then
     log.i('workspace not found, creating new one')
-    workspace = createWorkspace({ win }, name)
+    workspace = M.createWorkspace({ win }, name)
   else
     log.i('adding window to existing workspace')
     addWindowToWorkspace(workspace, win)
@@ -431,6 +439,34 @@ local function sendToWorkspace(name)
     showWorkspace(currentWorkspace, toFocus)
   end
 end
+
+-- send current focused window to another workspace
+--- @param name string
+local function sendToWorkspace(name)
+  log.i('try to send window to workspace ' .. name)
+  local win = hs.window.focusedWindow()
+  if not win then return end
+
+  M.sendWindowToWorkspace(win, name)
+end
+
+--- @param win hs.window
+local function onWindowCreated(win)
+  if not isManagable(win) then return end
+  if not currentWorkspace then return end
+  if isFloat(win) then
+    floatingWindows[#floatingWindows + 1] = win
+  else
+    local targetWorkspaceName = defaultWorkspaceOfWindow(win)
+    if targetWorkspaceName then
+      sendToWorkspace(targetWorkspaceName)
+      return
+    end
+    addWindowToWorkspace(currentWorkspace, win)
+  end
+  showWorkspace(currentWorkspace, win)
+end
+
 
 -- enlarge current focused window
 local function toggleEnlargeWindow()
@@ -612,7 +648,7 @@ function M.init()
     }
   )
   local windows = hs.window.allWindows()
-  currentWorkspace = createWorkspace(windows, 'U')
+  currentWorkspace = M.createWorkspace(windows, 'U')
   showWorkspace(currentWorkspace)
 end
 
