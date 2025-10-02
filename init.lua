@@ -1,3 +1,5 @@
+-- checkout https://github.com/Hammerspoon/hammerspoon/issues/3712 and patch hammerspoon first
+
 hs.loadSpoon('EmmyLua')
 hs.loadSpoon('LeftRightHotkey')
 hs.loadSpoon('BingDaily')
