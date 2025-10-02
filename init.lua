@@ -46,6 +46,6 @@ hs.window.animationDuration = 0
 
 local wm = require('wm')
 
-wm.init()
+wm:init()
 
 hs.alert.show('Config loaded', hs.alert.defaultStyle, hs.screen.mainScreen(), 0.3)
