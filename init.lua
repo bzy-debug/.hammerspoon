@@ -16,6 +16,14 @@ bind({ 'option' }, 'C', function()
   hs.openConsole()
 end)
 
+-- print all running application bundleID
+bind({ 'option' }, 'A', function()
+  local applications = hs.application.runningApplications()
+  for _, app in ipairs(applications) do
+    print(app:name(), app:bundleID())
+  end
+end)
+
 spoon.LeftRightHotkey:bind({ 'rShift' }, 't', function()
   local script = [[
 tell application "iTerm"
