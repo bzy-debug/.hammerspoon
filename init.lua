@@ -3,8 +3,6 @@ hs.loadSpoon('LeftRightHotkey')
 hs.loadSpoon('BingDaily')
 
 spoon.BingDaily.uhd_resolution = true
----@diagnostic disable-next-line: undefined-field
-spoon.BingDaily:init()
 
 local bind = hs.hotkey.bind
 
