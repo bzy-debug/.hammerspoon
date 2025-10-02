@@ -408,33 +408,44 @@ function F.findWindowInWorkspaces(win)
   return nil
 end
 
+-- handle window events
 --- @param win hs.window
-function F.onWindowDestroyed(win)
+function F.onWindowEvent(win, _, event)
   if not currentWorkspace then return end
-  local index = F.findWindowInCurrentWorkspace(win)
-  if index == -1 then return end
-  local toFocus = F.removeWindowFromWorkspace(currentWorkspace, win)
-  F.showWorkspace(currentWorkspace, toFocus)
-end
-
---- @param win hs.window
-function F.onWindowMoved(win)
-  if not currentWorkspace then return end
-  local index = F.findWindowInCurrentWorkspace(win)
-  if index == -1 then return end
-  F.showWorkspace(currentWorkspace, false)
-end
-
---- @param win hs.window
-function F.onWindowFocused(win)
   if not F.isManagable(win) then return end
-  local index = F.findWindowInCurrentWorkspace(win)
-  if index == -1 then
-    -- focus a window not in current workspace
-    -- switch to the workspace of that window
-    local workspace = F.findWindowInWorkspaces(win)
-    if not workspace then return end
-    F.switchToWorkspace(workspace.name, win)
+  if event == wf.windowCreated then
+    if F.isFloat(win) then
+      floatingWindows[#floatingWindows + 1] = win
+    else
+      local targetWorkspaceName = F.defaultWorkspaceOfWindow(win)
+      if targetWorkspaceName then
+        local targetWorkspace = F.getWorkspace(targetWorkspaceName)
+        F.addWindowToWorkspace(targetWorkspace, win)
+        F.showWorkspace(targetWorkspace, win)
+        return
+      end
+      F.addWindowToWorkspace(currentWorkspace, win)
+    end
+    F.showWorkspace(currentWorkspace, win)
+  elseif event == wf.windowDestroyed then
+    if not currentWorkspace then return end
+    local index = F.findWindowInCurrentWorkspace(win)
+    if index == -1 then return end
+    local toFocus = F.removeWindowFromWorkspace(currentWorkspace, win)
+    F.showWorkspace(currentWorkspace, toFocus)
+  elseif event == wf.windowMoved then
+    local index = F.findWindowInCurrentWorkspace(win)
+    if index == -1 then return end
+    F.showWorkspace(currentWorkspace, false)
+  elseif event == wf.windowFocused then
+    local index = F.findWindowInCurrentWorkspace(win)
+    if index == -1 then
+      -- focus a window not in current workspace
+      -- switch to the workspace of that window
+      local workspace = F.findWindowInWorkspaces(win)
+      if not workspace then return end
+      F.switchToWorkspace(workspace.name, win)
+    end
   end
 end
 
@@ -470,25 +481,6 @@ function F.sendToWorkspace(name)
 
   F.hideWindow(win)
   return F.moveWindowToWorkspace(win, name)
-end
-
---- @param win hs.window
-function F.onWindowCreated(win)
-  if not F.isManagable(win) then return end
-  if not currentWorkspace then return end
-  if F.isFloat(win) then
-    floatingWindows[#floatingWindows + 1] = win
-  else
-    local targetWorkspaceName = F.defaultWorkspaceOfWindow(win)
-    if targetWorkspaceName then
-      local targetWorkspace = F.getWorkspace(targetWorkspaceName)
-      F.addWindowToWorkspace(targetWorkspace, win)
-      F.showWorkspace(targetWorkspace, win)
-      return
-    end
-    F.addWindowToWorkspace(currentWorkspace, win)
-  end
-  F.showWorkspace(currentWorkspace, win)
 end
 
 -- enlarge current focused window
@@ -677,12 +669,8 @@ function M:init()
   bind({ 'option', 'shift' }, 'K', function() F.move(directionUp) end)
 
   filter:subscribe(
-    {
-      [wf.windowCreated] = F.onWindowCreated,
-      [wf.windowDestroyed] = F.onWindowDestroyed,
-      [wf.windowMoved] = F.onWindowMoved,
-      [wf.windowFocused] = F.onWindowFocused
-    }
+    { wf.windowCreated, wf.windowDestroyed, wf.windowMoved, wf.windowFocused, },
+    F.onWindowEvent
   )
   local windows = hs.window.allWindows()
   currentWorkspace = F.createWorkspace(windows, M.workspaces[1])
