@@ -4,6 +4,8 @@ hs.loadSpoon('EmmyLua')
 hs.loadSpoon('LeftRightHotkey')
 hs.loadSpoon('BingDaily')
 
+-- hs.logger.defaultLogLevel = 'debug'
+
 spoon.BingDaily.uhd_resolution = true
 
 local bind = hs.hotkey.bind

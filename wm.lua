@@ -72,10 +72,9 @@ end
 -- get a string representation of a workspace for debug
 --- @param workspace workspace
 function F.workspaceString(workspace)
-  local template = [[workspace %s:
+  local template = [[name: %s
   main: %s
-  others:
-    %s
+  others: %s
   tempLarge: %s
 ]]
   local main = workspace.layout.main and F.windowString(workspace.layout.main) or 'nil'
@@ -149,59 +148,46 @@ function F.defaultWorkspaceOfWindow(win)
   return M.appWorkspace[bundleID]
 end
 
--- create workspace from windows
--- the main window is the focused window
---- @param windows hs.window[]
+--- create a new empty workspace
 --- @param name string
---- @return workspace
-function F.createWorkspace(windows, name)
-  --- @type mainLayout
-  local mainLayout = {
-    main = nil,
-    tempLarge = nil,
-    others = {},
-  }
-
-  --- @type workspace
+--- @return workspace workspace
+function F.newWorkspace(name)
   local workspace = {
     name = name,
-    layout = mainLayout,
+    layout = {
+      main = nil,
+      tempLarge = nil,
+      others = {},
+    },
   }
+  workspaces[name] = workspace
+  return workspace
+end
+
+--- create the initial workspace from all windows
+--- name is the first workspace in M.workspaces
+--- main window is the frontmost window
+--- @return workspace
+function F.initWorkspace()
+  log.d('initWorkspace')
+  local name = M.workspaces[1]
+  local windows = hs.window.allWindows()
+  local workspace = F.newWorkspace(name)
 
   workspaces[name] = workspace
 
-  --- @type hs.window[]
-  local manageWindows = {}
+  local focusedWindow = hs.window.frontmostWindow()
+
+  if focusedWindow and F.isManagable(focusedWindow) then
+    workspace.layout.main = focusedWindow
+  end
 
   for _, win in pairs(windows) do
-    local defaultWorkspace = F.defaultWorkspaceOfWindow(win)
-    if F.isFloat(win) then
-      floatingWindows[#floatingWindows + 1] = win
-    elseif defaultWorkspace and defaultWorkspace ~= name then
-      local targetWorkspace = F.getWorkspace(defaultWorkspace)
-      F.addWindowToWorkspace(targetWorkspace, win)
-    elseif F.isManagable(win) then
-      manageWindows[#manageWindows + 1] = win
+    if F.isManagable(win) then
+      F.tryToAddWindowToWorkspace(workspace, win)
     end
   end
 
-  if #manageWindows == 0 then
-    return workspace
-  end
-  local focusedWindow = hs.window.frontmostWindow()
-  for _, win in pairs(manageWindows) do
-    local id = win:id()
-    if focusedWindow and id == focusedWindow:id() then
-      mainLayout.main = win
-      goto continue
-    end
-    mainLayout.others[#mainLayout.others + 1] = win
-    ::continue::
-  end
-
-  if not mainLayout.main then
-    F.popOthersToMain(mainLayout)
-  end
   return workspace
 end
 
@@ -235,7 +221,6 @@ end
 --- @param win hs.window | nil | false window to focus, if nil focus main, if false dont change focus
 --- @return nil
 function F.showWorkspace(workspace, win)
-  log.i('try to show', F.workspaceString(workspace))
   local text = hs.styledtext.new(
     workspace.name,
     {
@@ -310,11 +295,7 @@ function F.switchToWorkspace(name, win)
   -- switch to current workspace, do nothing
   if currentWorkspace and currentWorkspace.name == name then return end
 
-  local workspace = workspaces[name]
-  if not workspace then
-    log.i('switchToWorkspace: target workspace not exists, creating new one')
-    workspace = F.createWorkspace({}, name)
-  end
+  local workspace = F.getWorkspace(name)
 
   -- first show new workspace then hide old workspace to reduce flicker
   local lastCurrentWorkspace = currentWorkspace
@@ -331,13 +312,40 @@ local filter = wf.new(true)
 --- add window to workspace
 --- @param workspace workspace
 --- @param win hs.window
-function F.addWindowToWorkspace(workspace, win)
+function F.doAddWindowToWorkspace(workspace, win)
   local layout = workspace.layout
   if layout.main then
+    if layout.main == win then return end
+    if fnutils.contains(layout.others, win) then return end
     layout.others[#layout.others + 1] = win
   else
     layout.main = win
   end
+end
+
+--- try to add window to workspace
+--- the window might be floating or added to another workspace based on appWorkspace
+--- @param workspace workspace
+--- @param win hs.window
+--- @return workspace | nil workspace the workspace the window is actually added to, nil if not added
+function F.tryToAddWindowToWorkspace(workspace, win)
+  log.df([[ tryToAddWindowToWorkspace
+workspace: %s
+window: %s
+]], F.workspaceString(workspace), F.windowString(win))
+
+  if F.isFloat(win) then
+    floatingWindows[#floatingWindows + 1] = win
+    return nil
+  end
+  local defaultWorkspaceName = F.defaultWorkspaceOfWindow(win)
+  if defaultWorkspaceName and defaultWorkspaceName ~= workspace.name then
+    local targetWorkspace = F.getWorkspace(defaultWorkspaceName)
+    F.doAddWindowToWorkspace(targetWorkspace, win)
+    return targetWorkspace
+  end
+  F.doAddWindowToWorkspace(workspace, win)
+  return workspace
 end
 
 -- find window in current workspace
@@ -408,36 +416,47 @@ function F.findWindowInWorkspaces(win)
   return nil
 end
 
+local eventNames = {
+  [wf.windowCreated] = 'windowCreated',
+  [wf.windowDestroyed] = 'windowDestroyed',
+  [wf.windowMoved] = 'windowMoved',
+  [wf.windowFocused] = 'windowFocused',
+}
+
 -- handle window events
 --- @param win hs.window
 function F.onWindowEvent(win, _, event)
+  log.df('onWindowEvent %s %s', eventNames[event], F.windowString(win))
   if not currentWorkspace then return end
-  if not F.isManagable(win) then return end
-  if event == wf.windowCreated then
-    if F.isFloat(win) then
-      floatingWindows[#floatingWindows + 1] = win
-    else
-      local targetWorkspaceName = F.defaultWorkspaceOfWindow(win)
-      if targetWorkspaceName then
-        local targetWorkspace = F.getWorkspace(targetWorkspaceName)
-        F.addWindowToWorkspace(targetWorkspace, win)
-        F.showWorkspace(targetWorkspace, win)
-        return
-      end
-      F.addWindowToWorkspace(currentWorkspace, win)
-    end
-    F.showWorkspace(currentWorkspace, win)
-  elseif event == wf.windowDestroyed then
-    if not currentWorkspace then return end
+
+  if event == wf.windowDestroyed then
     local index = F.findWindowInCurrentWorkspace(win)
     if index == -1 then return end
     local toFocus = F.removeWindowFromWorkspace(currentWorkspace, win)
     F.showWorkspace(currentWorkspace, toFocus)
-  elseif event == wf.windowMoved then
+    return
+  end
+
+  if not F.isManagable(win) then return end
+
+  if event == wf.windowCreated then
+    local workspace = F.tryToAddWindowToWorkspace(currentWorkspace, win)
+    if not workspace then
+      F.showWorkspace(currentWorkspace, win)
+    else
+      F.showWorkspace(workspace, win)
+    end
+    return
+  end
+
+  if event == wf.windowMoved then
     local index = F.findWindowInCurrentWorkspace(win)
     if index == -1 then return end
     F.showWorkspace(currentWorkspace, false)
-  elseif event == wf.windowFocused then
+    return
+  end
+
+  if event == wf.windowFocused then
     local index = F.findWindowInCurrentWorkspace(win)
     if index == -1 then
       -- focus a window not in current workspace
@@ -446,6 +465,7 @@ function F.onWindowEvent(win, _, event)
       if not workspace then return end
       F.switchToWorkspace(workspace.name, win)
     end
+    return
   end
 end
 
@@ -455,7 +475,7 @@ end
 function F.getWorkspace(name)
   local workspace = workspaces[name]
   if not workspace then
-    workspace = F.createWorkspace({}, name)
+    workspace = F.newWorkspace(name)
   end
   return workspace
 end
@@ -468,7 +488,7 @@ function F.moveWindowToWorkspace(win, name)
   if not currentWorkspace then return end
   if currentWorkspace.name == name then return end
   local targetWorkspace = F.getWorkspace(name)
-  F.addWindowToWorkspace(targetWorkspace, win)
+  F.doAddWindowToWorkspace(targetWorkspace, win)
   return F.removeWindowFromWorkspace(currentWorkspace, win)
 end
 
@@ -609,7 +629,7 @@ function F.toggleFloatWindow()
   if index then
     -- already floating, make it managed
     table.remove(floatingWindows, index)
-    F.addWindowToWorkspace(currentWorkspace, win)
+    F.doAddWindowToWorkspace(currentWorkspace, win)
     F.showWorkspace(currentWorkspace, win)
   else
     -- make it floating
@@ -668,13 +688,12 @@ function M:init()
   bind({ 'option', 'shift' }, 'J', function() F.move(directionDown) end)
   bind({ 'option', 'shift' }, 'K', function() F.move(directionUp) end)
 
+  currentWorkspace = F.initWorkspace()
+  F.showWorkspace(currentWorkspace)
   filter:subscribe(
     { wf.windowCreated, wf.windowDestroyed, wf.windowMoved, wf.windowFocused, },
     F.onWindowEvent
   )
-  local windows = hs.window.allWindows()
-  currentWorkspace = F.createWorkspace(windows, M.workspaces[1])
-  F.showWorkspace(currentWorkspace)
 end
 
 return M
