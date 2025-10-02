@@ -411,12 +411,10 @@ end
 --- @param win hs.window
 function F.onWindowDestroyed(win)
   if not currentWorkspace then return end
-  local workspace = F.findWindowInWorkspaces(win)
-  if not workspace then return end
-  local toFocus = F.removeWindowFromWorkspace(workspace, win)
-  if workspace == currentWorkspace then
-    F.showWorkspace(currentWorkspace, toFocus)
-  end
+  local index = F.findWindowInCurrentWorkspace(win)
+  if index == -1 then return end
+  local toFocus = F.removeWindowFromWorkspace(currentWorkspace, win)
+  F.showWorkspace(currentWorkspace, toFocus)
 end
 
 --- @param win hs.window
