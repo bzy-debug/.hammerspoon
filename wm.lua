@@ -184,7 +184,10 @@ function F.initWorkspace()
 
   for _, win in pairs(windows) do
     if F.isManagable(win) then
-      F.tryToAddWindowToWorkspace(workspace, win)
+      local w = F.tryToAddWindowToWorkspace(workspace, win)
+      if w and w ~= workspace then
+        F.hideWindow(win)
+      end
     end
   end
 
