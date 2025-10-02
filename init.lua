@@ -59,6 +59,7 @@ wm.floatWindows = {
 wm.floatApps = {
   'com.apple.systempreferences',
   'com.apple.SystemProfiler',
+  'com.xunlei.Thunder',
 }
 
 wm.appWorkspace = {
