@@ -455,18 +455,6 @@ function F.onWindowEvent(win, _, event)
     F.showWorkspace(currentWorkspace, false)
     return
   end
-
-  if event == wf.windowFocused then
-    local index = F.findWindowInCurrentWorkspace(win)
-    if index == -1 then
-      -- focus a window not in current workspace
-      -- switch to the workspace of that window
-      local workspace = F.findWindowInWorkspaces(win)
-      if not workspace then return end
-      F.switchToWorkspace(workspace.name, win)
-    end
-    return
-  end
 end
 
 -- get workspace by name, create a new one if not exists
@@ -691,7 +679,7 @@ function M:init()
   currentWorkspace = F.initWorkspace()
   F.showWorkspace(currentWorkspace)
   filter:subscribe(
-    { wf.windowCreated, wf.windowDestroyed, wf.windowMoved, wf.windowFocused, },
+    { wf.windowCreated, wf.windowDestroyed, wf.windowMoved, },
     F.onWindowEvent
   )
 end
