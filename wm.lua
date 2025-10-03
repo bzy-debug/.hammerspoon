@@ -191,6 +191,9 @@ end
 --- @param win hs.window
 function F.hideWindow(win)
   local winFrame = win:frame()
+  if winFrame.w <= 0 or winFrame.h <= 0 then
+    return
+  end
   local hiddenFrame = geo.rect(
     -winFrame.w + 1,
     -winFrame.h + 1,
@@ -217,6 +220,7 @@ end
 --- @param win hs.window | nil | false window to focus, if nil focus main, if false dont change focus
 --- @return nil
 function F.showWorkspace(workspace, win)
+  log.df('showWorkspace %s', F.workspaceString(workspace))
   local text = hs.styledtext.new(
     workspace.name,
     {
@@ -425,9 +429,10 @@ function F.onWindowEvent(win, _, event)
   if not currentWorkspace then return end
 
   if event == wf.windowDestroyed then
-    local index = F.findWindowInCurrentWorkspace(win)
-    if index == -1 then return end
-    local toFocus = F.removeWindowFromWorkspace(currentWorkspace, win)
+    local workspace = F.findWindowInWorkspaces(win)
+    if not workspace then return end
+    local toFocus = F.removeWindowFromWorkspace(workspace, win)
+    if workspace ~= currentWorkspace then return end
     F.showWorkspace(currentWorkspace, toFocus)
     return
   end
