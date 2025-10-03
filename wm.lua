@@ -90,19 +90,22 @@ end
 --- @param win hs.window
 --- @param frame hs.geometry
 function F.setFrame(win, frame)
-  local axApp = hs.axuielement.applicationElement(win:application())
-  if axApp then
-    local wasEnhanced = axApp.AXEnhancedUserInterface
-    if wasEnhanced then
-      axApp.AXEnhancedUserInterface = false
+  local app = win:application()
+  if app then
+    local axApp = hs.axuielement.applicationElement(app)
+    if axApp then
+      local wasEnhanced = axApp.AXEnhancedUserInterface
+      if wasEnhanced then
+        axApp.AXEnhancedUserInterface = false
+      end
+      win:setFrame(frame)
+      if wasEnhanced then
+        axApp.AXEnhancedUserInterface = true
+      end
+      return
     end
-    win:setFrame(frame)
-    if wasEnhanced then
-      axApp.AXEnhancedUserInterface = true
-    end
-  else
-    win:setFrame(frame)
   end
+  win:setFrame(frame)
 end
 
 -- get the bundle id of a window
