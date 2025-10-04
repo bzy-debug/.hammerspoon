@@ -47,23 +47,38 @@ M.workspaces = {}
 --- @type table<string, workspace>
 local workspaces = {}
 
---- @type hs.window[]
+--- @type table<hs.window, hs.geometry>
 local floatingWindows = {}
 
 -- add a new floating window (not managed by wm)
 --- @param win hs.window
 --- @return nil
 function F.addNewFloatingWindow(win)
-  floatingWindows[#floatingWindows + 1] = win
+  floatingWindows[win] = win:frame()
+end
+
+-- raise all floating windows
+function F.raiseFloatingWindows()
+  for win, frame in pairs(floatingWindows) do
+    win:setFrame(frame)
+    win:raise()
+  end
+end
+
+-- update the frame of a floating window
+--- @param win hs.window
+function F.updateFloatingWindow(win)
+  if floatingWindows[win] then
+    floatingWindows[win] = win:frame()
+  end
 end
 
 -- remove a floating window
 --- @param win hs.window
 --- @return boolean status true if removed, false if not found
 function F.removeFloatingWindow(win)
-  local index = fnutils.indexOf(floatingWindows, win)
-  if index then
-    table.remove(floatingWindows, index)
+  if floatingWindows[win] then
+    floatingWindows[win] = nil
     return true
   end
   return false
@@ -73,7 +88,7 @@ end
 --- @param win hs.window
 --- @return boolean
 function F.isFloatingWindow(win)
-  return fnutils.contains(floatingWindows, win)
+  return floatingWindows[win] ~= nil
 end
 
 --- @type workspace|nil
@@ -307,10 +322,7 @@ function F.showWorkspace(workspace, win)
     win:focus()
   end
 
-  -- make floating windows frontmost
-  for _, fwin in pairs(floatingWindows) do
-    fwin:raise()
-  end
+  F.raiseFloatingWindows()
 end
 
 -- switch to a workspace
@@ -477,10 +489,17 @@ function F.onWindowEvent(win, _, event)
   end
 
   if event == wf.windowMoved then
+    -- update floating window position if it is floating
+    F.updateFloatingWindow(win)
+
     local index = F.findWindowInCurrentWorkspace(win)
     if index == -1 then return end
     F.showWorkspace(currentWorkspace, false)
     return
+  end
+
+  if event == wf.windowFocused then
+    F.raiseFloatingWindows()
   end
 end
 
@@ -513,11 +532,9 @@ end
 function F.sendToWorkspace(name)
   local win = hs.window.focusedWindow()
   if not win then return end
-
-  F.hideWindow(win)
-
   if F.isFloatingWindow(win) then return end
 
+  F.hideWindow(win)
   return F.moveWindowToWorkspace(win, name)
 end
 
@@ -700,7 +717,7 @@ function M:init()
   currentWorkspace = F.initWorkspace()
   F.showWorkspace(currentWorkspace)
   filter:subscribe(
-    { wf.windowCreated, wf.windowDestroyed, wf.windowMoved, },
+    { wf.windowCreated, wf.windowDestroyed, wf.windowMoved, wf.windowFocused },
     F.onWindowEvent
   )
 end
