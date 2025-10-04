@@ -8,6 +8,14 @@ hs.loadSpoon('BingDaily')
 
 spoon.BingDaily.uhd_resolution = true
 
+---@param msg string
+---@param time number|nil
+---@return nil
+local function quickAlert(msg, time)
+  time = time or 0.3
+  hs.alert.show(msg, hs.alert.defaultStyle, hs.screen.mainScreen(), time)
+end
+
 local bind = hs.hotkey.bind
 
 bind({ 'option' }, 'R', function()
@@ -20,9 +28,15 @@ end)
 
 -- print all running application bundleID
 bind({ 'option' }, 'A', function()
-  local applications = hs.application.runningApplications()
-  for _, app in ipairs(applications) do
-    print(app:name(), app:bundleID())
+  local win = hs.window.focusedWindow()
+  if not win then return end
+  local app = win:application()
+  if not app then return end
+  local bundleID = app:bundleID()
+  if hs.pasteboard.setContents(bundleID) then
+    quickAlert(bundleID, 0.5)
+  else
+    quickAlert('failed to set clipboard', 0.5)
   end
 end)
 
@@ -60,6 +74,7 @@ wm.floatApps = {
   'com.apple.systempreferences',
   'com.apple.SystemProfiler',
   'com.xunlei.Thunder',
+  'io.mpv'
 }
 
 wm.appWorkspace = {
@@ -70,4 +85,4 @@ wm.workspaces = { 'U', 'I', 'O', 'P', '7', '8', '9', '0' }
 
 wm:init()
 
-hs.alert.show('Config loaded', hs.alert.defaultStyle, hs.screen.mainScreen(), 0.3)
+quickAlert('Config loaded')
