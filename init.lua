@@ -8,6 +8,17 @@ hs.loadSpoon('BingDaily')
 
 spoon.BingDaily.uhd_resolution = true
 
+---@return string hostname
+local function getLocalHostName()
+  --- @type string
+  ---@diagnostic disable-next-line: assign-type-mismatch
+  local output = hs.execute('scutil --get LocalHostName')
+  output = output:gsub('%s+', '')
+  return output
+end
+
+local hostName = getLocalHostName()
+
 ---@param msg string
 ---@param time number|nil
 ---@return nil
@@ -62,9 +73,13 @@ spoon.LeftRightHotkey:start()
 
 hs.window.animationDuration = 0
 
+local helloMsg = 'Config loaded'
+
 local wm = require('wm')
 
 wm.margin = 5
+
+wm.workspaces = { 'U', 'I', 'O', 'P', '7', '8', '9', '0' }
 
 wm.floatWindows = {
   'Picture-in-Picture'
@@ -77,12 +92,18 @@ wm.floatApps = {
   'io.mpv'
 }
 
-wm.appWorkspace = {
-  ['org.gnu.Emacs'] = '7',
-}
 
-wm.workspaces = { 'U', 'I', 'O', 'P', '7', '8', '9', '0' }
+if hostName == "bzy-mbp-home" then
+  -- load home config
+
+  wm.appWorkspace = {
+    ['org.gnu.Emacs'] = '7',
+  }
+
+
+  helloMsg = 'Home Config loaded'
+end
 
 wm:init()
 
-quickAlert('Config loaded')
+quickAlert(helloMsg)
