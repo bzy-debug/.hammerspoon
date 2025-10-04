@@ -50,6 +50,32 @@ local workspaces = {}
 --- @type hs.window[]
 local floatingWindows = {}
 
+-- add a new floating window (not managed by wm)
+--- @param win hs.window
+--- @return nil
+function F.addNewFloatingWindow(win)
+  floatingWindows[#floatingWindows + 1] = win
+end
+
+-- remove a floating window
+--- @param win hs.window
+--- @return boolean status true if removed, false if not found
+function F.removeFloatingWindow(win)
+  local index = fnutils.indexOf(floatingWindows, win)
+  if index then
+    table.remove(floatingWindows, index)
+    return true
+  end
+  return false
+end
+
+-- check if a window is floating
+--- @param win hs.window
+--- @return boolean
+function F.isFloatingWindow(win)
+  return fnutils.contains(floatingWindows, win)
+end
+
 --- @type workspace|nil
 local currentWorkspace = nil
 
@@ -335,8 +361,7 @@ window: %s
 ]], F.workspaceString(workspace), F.windowString(win))
 
   if F.isFloat(win) then
-    floatingWindows[#floatingWindows + 1] = win
-    return nil
+    return F.addNewFloatingWindow(win)
   end
   local defaultWorkspaceName = F.defaultWorkspaceOfWindow(win)
   if defaultWorkspaceName and defaultWorkspaceName ~= workspace.name then
@@ -429,6 +454,8 @@ function F.onWindowEvent(win, _, event)
   if not currentWorkspace then return end
 
   if event == wf.windowDestroyed then
+    -- try to remove from floating windows first
+    if F.removeFloatingWindow(win) then return end
     local workspace = F.findWindowInWorkspaces(win)
     if not workspace then return end
     local toFocus = F.removeWindowFromWorkspace(workspace, win)
@@ -488,6 +515,9 @@ function F.sendToWorkspace(name)
   if not win then return end
 
   F.hideWindow(win)
+
+  if F.isFloatingWindow(win) then return end
+
   return F.moveWindowToWorkspace(win, name)
 end
 
@@ -516,11 +546,10 @@ function F.focus(direction)
   if not currentWorkspace then return end
   local win = hs.window.focusedWindow()
   if not win then return end
-  local layout = currentWorkspace.layout
   local index = F.findWindowInCurrentWorkspace(win)
-
   if index == -1 then return end
 
+  local layout = currentWorkspace.layout
   if direction == directionLeft then
     if index == 0 and #layout.others > 0 then
       layout.others[1]:focus()
@@ -544,11 +573,10 @@ function F.move(direction)
   if not currentWorkspace then return end
   local win = hs.window.focusedWindow()
   if not win then return end
-  local layout = currentWorkspace.layout
   local index = F.findWindowInCurrentWorkspace(win)
-
   if index == -1 then return end
 
+  local layout = currentWorkspace.layout
   if direction == directionLeft then
     if index == 0 and #layout.others > 0 then
       local oldFocus = layout.main
@@ -589,12 +617,7 @@ function F.closeWindow()
 end
 
 local switchfilter = wf.new(function(win)
-  local index = F.findWindowInCurrentWorkspace(win)
-  if index == -1 then
-    return fnutils.contains(floatingWindows, win)
-  else
-    return true
-  end
+  return F.isFloatingWindow(win) or F.findWindowInCurrentWorkspace(win) ~= -1
 end)
 
 local switch = hs.window.switcher.new(
@@ -612,16 +635,14 @@ function F.toggleFloatWindow()
   local win = hs.window.focusedWindow()
   if not win then return end
 
-  local index = fnutils.indexOf(floatingWindows, win)
-
-  if index then
+  if F.isFloatingWindow(win) then
     -- already floating, make it managed
-    table.remove(floatingWindows, index)
+    F.removeFloatingWindow(win)
     F.doAddWindowToWorkspace(currentWorkspace, win)
     F.showWorkspace(currentWorkspace, win)
   else
     -- make it floating
-    floatingWindows[#floatingWindows + 1] = win
+    F.addNewFloatingWindow(win)
     F.removeWindowFromWorkspace(currentWorkspace, win)
     F.showWorkspace(currentWorkspace, false)
   end
