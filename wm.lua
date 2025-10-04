@@ -103,9 +103,6 @@ end
 --- @type workspace|nil
 local currentWorkspace = nil
 
--- wm only works on one screen
-local mainScreen = hs.screen.mainScreen()
-
 local menubar = hs.menubar.new(true, 'wm')
 
 -- get a string representation of a window for debug
@@ -236,13 +233,14 @@ end
 -- hide a window (move it out of screen)
 --- @param win hs.window
 function F.hideWindow(win)
+  local screenFrame = hs.screen.mainScreen():frame()
   local winFrame = win:frame()
   if winFrame.w <= 0 or winFrame.h <= 0 then
     return
   end
   local hiddenFrame = geo.rect(
-    -winFrame.w + 1,
-    -winFrame.h + 1,
+    screenFrame.w - 1,
+    screenFrame.h - 1,
     winFrame.w,
     winFrame.h
   )
@@ -279,7 +277,8 @@ function F.showWorkspace(workspace, win)
   if not layout.main then return end
 
   -- arrange windows
-  local screenFrame = mainScreen:frame()
+  -- only works on main screen
+  local screenFrame = hs.screen.mainScreen():frame()
   local width = screenFrame.w - 3 * M.margin
   local height = screenFrame.h - 2 * M.margin
   local frameWidth = math.floor(width / 2)
