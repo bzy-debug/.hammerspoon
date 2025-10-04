@@ -122,7 +122,8 @@ function F.windowString(win)
   --- @type hs.application
   ---@diagnostic disable-next-line: assign-type-mismatch
   local app = win:application()
-  return string.format('%s \'%s\'(id=%d)', app:name(), win:title(), win:id())
+  local appStr = app and app:name() or 'Unknown App'
+  return string.format('%s \'%s\'(id=%d)', appStr, win:title(), win:id())
 end
 
 -- get a string representation of a workspace for debug
@@ -476,8 +477,8 @@ local eventNames = {
 -- handle window events
 --- @param win hs.window
 function F.onWindowEvent(win, _, event)
-  log.df('onWindowEvent %s %s', eventNames[event], F.windowString(win))
   if not currentWorkspace then return end
+  log.df('onWindowEvent %s %s', eventNames[event], F.windowString(win))
 
   if event == wf.windowDestroyed then
     -- try to remove from floating windows first
