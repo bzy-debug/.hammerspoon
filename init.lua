@@ -90,8 +90,9 @@ wm.floatWindows = {
 wm.floatApps = {
   'com.apple.systempreferences',
   'com.apple.SystemProfiler',
+  'com.apple.Passwords',
   'com.xunlei.Thunder',
-  'io.mpv'
+  'io.mpv',
 }
 
 
