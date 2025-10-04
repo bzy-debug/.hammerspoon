@@ -34,42 +34,55 @@ M.appWorkspace = {}
 --- @type string[]
 M.workspaces = {}
 
+local log = hs.logger.new('wm')
+
 --- Types
 --- @class workspace
 --- @field name string
 --- @field layout mainLayout
---
+---
 --- @class mainLayout
 --- @field main hs.window | nil
 --- @field others hs.window[]
 --- @field tempLarge hs.window | nil
+---
+--- @class floatingWindow
+--- @field win hs.window
+--- @field frame hs.geometry
 
 --- @type table<string, workspace>
 local workspaces = {}
 
---- @type table<hs.window, hs.geometry>
+--- @type table<number, floatingWindow>
 local floatingWindows = {}
 
 -- add a new floating window (not managed by wm)
 --- @param win hs.window
 --- @return nil
 function F.addNewFloatingWindow(win)
-  floatingWindows[win] = win:frame()
+  local id = win:id()
+  if not id then return end
+  floatingWindows[id] = { win = win, frame = win:frame() }
 end
 
 -- raise all floating windows
 function F.raiseFloatingWindows()
-  for win, frame in pairs(floatingWindows) do
-    win:setFrame(frame)
-    win:raise()
+  for _, f in pairs(floatingWindows) do
+    log.df('raiseFlotingWindows: raise %s to %s', F.windowString(f.win), f.frame)
+    F.setFrame(f.win, f.frame)
+    f.win:raise()
   end
 end
 
 -- update the frame of a floating window
 --- @param win hs.window
 function F.updateFloatingWindow(win)
-  if floatingWindows[win] then
-    floatingWindows[win] = win:frame()
+  local id = win:id()
+  if not id then return end
+  if floatingWindows[id] then
+    local frame = win:frame()
+    log.df('updateFloatingWindow: update %s to %s', F.windowString(win), frame)
+    floatingWindows[id] = { win = win, frame = frame }
   end
 end
 
@@ -77,8 +90,10 @@ end
 --- @param win hs.window
 --- @return boolean status true if removed, false if not found
 function F.removeFloatingWindow(win)
-  if floatingWindows[win] then
-    floatingWindows[win] = nil
+  local id = win:id()
+  if not id then return false end
+  if floatingWindows[id] then
+    floatingWindows[id] = nil
     return true
   end
   return false
@@ -88,7 +103,9 @@ end
 --- @param win hs.window
 --- @return boolean
 function F.isFloatingWindow(win)
-  return floatingWindows[win] ~= nil
+  local id = win:id()
+  if not id then return false end
+  return floatingWindows[id] ~= nil
 end
 
 --- @type workspace|nil
@@ -96,8 +113,6 @@ local currentWorkspace = nil
 
 -- wm only works on one screen
 local mainScreen = hs.screen.mainScreen()
-
-local log = hs.logger.new('wm')
 
 local menubar = hs.menubar.new(true, 'wm')
 
@@ -514,28 +529,20 @@ function F.getWorkspace(name)
   return workspace
 end
 
--- move window from current workspace to another workspace
---- @param win hs.window
---- @param name string
---- @return nil win window to focus after move
-function F.moveWindowToWorkspace(win, name)
-  if not currentWorkspace then return end
-  if currentWorkspace.name == name then return end
-  local targetWorkspace = F.getWorkspace(name)
-  F.doAddWindowToWorkspace(targetWorkspace, win)
-  return F.removeWindowFromWorkspace(currentWorkspace, win)
-end
-
 -- send current focused window to another workspace
 --- @param name string
 --- @return hs.window | nil win the window to focus after move
 function F.sendToWorkspace(name)
+  if not currentWorkspace then return end
   local win = hs.window.focusedWindow()
   if not win then return end
   if F.isFloatingWindow(win) then return end
+  if currentWorkspace.name == name then return end
 
   F.hideWindow(win)
-  return F.moveWindowToWorkspace(win, name)
+  local targetWorkspace = F.getWorkspace(name)
+  F.doAddWindowToWorkspace(targetWorkspace, win)
+  return F.removeWindowFromWorkspace(currentWorkspace, win)
 end
 
 -- enlarge current focused window
@@ -648,17 +655,21 @@ local switch = hs.window.switcher.new(
 -- toggle float the focused window
 -- float window will be the frontmost in every workspace
 function F.toggleFloatWindow()
+  log.d('toggleFloatWindow called')
   if not currentWorkspace then return end
   local win = hs.window.focusedWindow()
-  if not win then return end
+  if not win then
+    log.d('toggleFloatWindow: no focused window')
+    return
+  end
 
   if F.isFloatingWindow(win) then
-    -- already floating, make it managed
+    log.d('toggleFloatWindow: already floating, making window managed')
     F.removeFloatingWindow(win)
     F.doAddWindowToWorkspace(currentWorkspace, win)
     F.showWorkspace(currentWorkspace, win)
   else
-    -- make it floating
+    log.d('toggleFloatWindow: making window floating')
     F.addNewFloatingWindow(win)
     F.removeWindowFromWorkspace(currentWorkspace, win)
     F.showWorkspace(currentWorkspace, false)
