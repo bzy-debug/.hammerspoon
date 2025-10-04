@@ -44,8 +44,10 @@ bind({ 'option' }, 'A', function()
   local app = win:application()
   if not app then return end
   local bundleID = app:bundleID()
-  if hs.pasteboard.setContents(bundleID) then
-    quickAlert(bundleID, 0.5)
+  local title = win:title()
+  local content = string.format('%s - %s', bundleID, title)
+  if hs.pasteboard.setContents(content) then
+    quickAlert(content, 0.5)
   else
     quickAlert('failed to set clipboard', 0.5)
   end
@@ -82,7 +84,7 @@ wm.margin = 5
 wm.workspaces = { 'U', 'I', 'O', 'P', '7', '8', '9', '0' }
 
 wm.floatWindows = {
-  'Picture-in-Picture'
+  'Picture-in-Picture',
 }
 
 wm.floatApps = {
