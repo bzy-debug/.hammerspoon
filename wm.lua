@@ -60,18 +60,10 @@ local floatingWindows = {}
 --- @param win hs.window
 --- @return nil
 function F.addNewFloatingWindow(win)
+  log.df('addNewFloatingWindow: %s', F.windowString(win))
   local id = win:id()
   if not id then return end
   floatingWindows[id] = { win = win, frame = win:frame() }
-end
-
--- raise all floating windows
-function F.raiseFloatingWindows()
-  for _, f in pairs(floatingWindows) do
-    log.df('raiseFlotingWindows: raise %s to %s', F.windowString(f.win), f.frame)
-    F.setFrame(f.win, f.frame)
-    f.win:raise()
-  end
 end
 
 -- update the frame of a floating window
@@ -337,8 +329,6 @@ function F.showWorkspace(workspace, win)
   else
     win:focus()
   end
-
-  F.raiseFloatingWindows()
 end
 
 -- switch to a workspace
@@ -511,10 +501,6 @@ function F.onWindowEvent(win, _, event)
     if index == -1 then return end
     F.showWorkspace(currentWorkspace, false)
     return
-  end
-
-  if event == wf.windowFocused then
-    F.raiseFloatingWindows()
   end
 end
 
@@ -728,7 +714,7 @@ function M:init()
   currentWorkspace = F.initWorkspace()
   F.showWorkspace(currentWorkspace)
   filter:subscribe(
-    { wf.windowCreated, wf.windowDestroyed, wf.windowMoved, wf.windowFocused },
+    { wf.windowCreated, wf.windowDestroyed, wf.windowMoved },
     F.onWindowEvent
   )
 end
