@@ -11,7 +11,6 @@ spoon.BingDaily.uhd_resolution = true
 ---@return string hostname
 local function getLocalHostName()
   --- @type string
-  ---@diagnostic disable-next-line: assign-type-mismatch
   local output = hs.execute('scutil --get LocalHostName')
   output = output:gsub('%s+', '')
   return output

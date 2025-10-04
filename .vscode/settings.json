@@ -1,3 +1,4 @@
 {
-  "Lua.workspace.library": ["./Spoons/EmmyLua.spoon/annotations"]
+  "Lua.workspace.library": ["./Spoons/EmmyLua.spoon/annotations"],
+  "Lua.diagnostics.disable": ["assign-type-mismatch"]
 }

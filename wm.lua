@@ -111,8 +111,6 @@ local menubar = hs.menubar.new(true, 'wm')
 -- get a string representation of a window for debug
 --- @param win hs.window
 function F.windowString(win)
-  --- @type hs.application
-  ---@diagnostic disable-next-line: assign-type-mismatch
   local app = win:application()
   local appStr = app and app:name() or 'Unknown App'
   return string.format('%s \'%s\'(id=%d)', appStr, win:title(), win:id())
@@ -128,7 +126,6 @@ function F.workspaceString(workspace)
 ]]
   local main = workspace.layout.main and F.windowString(workspace.layout.main) or 'nil'
   --- @type string[]
-  --- @diagnostic disable-next-line: assign-type-mismatch
   local others = fnutils.map(workspace.layout.others, F.windowString)
   local tempLarge = workspace.layout.tempLarge and F.windowString(workspace.layout.tempLarge) or 'nil'
   return string.format(template, workspace.name, main, table.concat(others, '\n\t'), tempLarge)
