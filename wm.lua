@@ -343,8 +343,7 @@ end
 -- switch to a workspace
 -- first hide current workspace then show the target workspace
 --- @param name string
---- @param win hs.window | nil window to focus, if nil focus main, if false dont change focus
-function F.switchToWorkspace(name, win)
+function F.switchToWorkspace(name)
   -- switch to current workspace, do nothing
   if currentWorkspace and currentWorkspace.name == name then return end
 
@@ -353,7 +352,7 @@ function F.switchToWorkspace(name, win)
   -- first show new workspace then hide old workspace to reduce flicker
   local lastCurrentWorkspace = currentWorkspace
   currentWorkspace = workspace
-  F.showWorkspace(workspace, win)
+  F.showWorkspace(workspace)
 
   if lastCurrentWorkspace then
     F.hideWorkspace(lastCurrentWorkspace)
