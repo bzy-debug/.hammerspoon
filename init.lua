@@ -90,6 +90,7 @@ wm.floatApps = {
   'com.apple.systempreferences',
   'com.apple.SystemProfiler',
   'com.apple.Passwords',
+  'com.apple.FollowUpUI',
   'com.xunlei.Thunder',
   'com.west2online.ClashXPro',
   'io.mpv',
