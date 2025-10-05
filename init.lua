@@ -91,6 +91,7 @@ wm.floatApps = {
   'com.apple.SystemProfiler',
   'com.apple.Passwords',
   'com.xunlei.Thunder',
+  'com.west2online.ClashXPro',
   'io.mpv',
 }
 
