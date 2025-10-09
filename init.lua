@@ -36,6 +36,10 @@ bind({ 'option' }, 'C', function()
   hs.openConsole()
 end)
 
+bind({ 'option' }, 'N', function()
+  hs.urlevent.openURL('https://metacubex.github.io/metacubexd/')
+end)
+
 -- print all running application bundleID
 bind({ 'option' }, 'A', function()
   local win = hs.window.focusedWindow()
