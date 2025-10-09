@@ -91,6 +91,8 @@ wm.floatApps = {
   'com.apple.SystemProfiler',
   'com.apple.Passwords',
   'com.apple.FollowUpUI',
+  'com.apple.LocalAuthentication.UIAgent',
+  'com.apple.reminders',
   'com.xunlei.Thunder',
   'com.west2online.ClashXPro',
   'io.mpv',
@@ -106,6 +108,14 @@ if hostName == "bzy-mbp-home" then
 
 
   helloMsg = 'Home Config loaded'
+elseif hostName == "bzy-mbp-16-office" then
+  wm.appWorkspace = {
+    ['com.apple.Music'] = '7',
+    ['com.tencent.WeWorkMac'] = '8',
+    ['org.gnu.Emacs'] = '9',
+  }
+
+  helloMsg = 'Office Config loaded'
 end
 
 wm:init()
