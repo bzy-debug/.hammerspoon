@@ -4,8 +4,6 @@ hs.loadSpoon('EmmyLua')
 hs.loadSpoon('LeftRightHotkey')
 hs.loadSpoon('BingDaily')
 
--- hs.logger.defaultLogLevel = 'debug'
-
 spoon.BingDaily.uhd_resolution = true
 
 ---@return string hostname
@@ -100,6 +98,7 @@ wm.floatApps = {
   'com.xunlei.Thunder',
   'com.west2online.ClashXPro',
   'io.mpv',
+  'com.apple.ScreenContinuity'
 }
 
 
