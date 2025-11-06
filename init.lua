@@ -6,6 +6,9 @@ hs.loadSpoon('BingDaily')
 
 spoon.BingDaily.uhd_resolution = true
 
+local http = require('hs.http')
+local json = require('hs.json')
+
 ---@return string hostname
 local function getLocalHostName()
   --- @type string
@@ -24,6 +27,58 @@ local function quickAlert(msg, time)
   hs.alert.show(msg, hs.alert.defaultStyle, hs.screen.mainScreen(), time)
 end
 
+local wifiServiceName = 'Wi-Fi'
+local proxyHost = '127.0.0.1'
+local proxyPort = '7890'
+local mihomoConfigUrl = 'http://127.0.0.1:9090/configs'
+
+---@param enabled boolean
+---@return boolean
+local function setTunMode(enabled)
+  local body = json.encode({ tun = { enable = enabled } })
+  local status = http.doRequest(mihomoConfigUrl, 'PATCH', body)
+  if status and status >= 200 and status < 300 then
+    return true
+  end
+  quickAlert('Failed to update Mihomo TUN mode', 0.6)
+  return false
+end
+
+local function enableProxy(service)
+  hs.execute(string.format('networksetup -setwebproxy %q %s %s', service, proxyHost, proxyPort))
+  hs.execute(string.format('networksetup -setsecurewebproxy %q %s %s', service, proxyHost, proxyPort))
+  hs.execute(string.format('networksetup -setwebproxystate %q on', service))
+  hs.execute(string.format('networksetup -setsecurewebproxystate %q on', service))
+  local tunOk = setTunMode(true)
+  local suffix = tunOk and ' (TUN on)' or ' (TUN failed)'
+  quickAlert(string.format('Proxy enabled: %s:%s%s', proxyHost, proxyPort, suffix), 0.6)
+end
+
+local function disableProxy(service)
+  hs.execute(string.format('networksetup -setwebproxystate %q off', service))
+  hs.execute(string.format('networksetup -setsecurewebproxystate %q off', service))
+  local tunOk = setTunMode(false)
+  local suffix = tunOk and ' (TUN off)' or ' (TUN failed)'
+  quickAlert('Proxy disabled' .. suffix, 0.6)
+end
+
+---@param service string
+---@return boolean
+local function isWebProxyEnabled(service)
+  local output = hs.execute(string.format('networksetup -getwebproxy %q', service)) or ''
+  local enabled = output:match('Enabled:%s+(%w+)')
+  return enabled == 'Yes'
+end
+
+local function toggleWifiProxy()
+  local enabled = isWebProxyEnabled(wifiServiceName)
+  if enabled then
+    disableProxy(wifiServiceName)
+  else
+    enableProxy(wifiServiceName)
+  end
+end
+
 local bind = hs.hotkey.bind
 
 bind({ 'option' }, 'R', function()
@@ -34,8 +89,12 @@ bind({ 'option' }, 'C', function()
   hs.openConsole()
 end)
 
-bind({ 'option' }, 'N', function()
+bind({ 'option' }, 'M', function()
   hs.urlevent.openURL('https://metacubex.github.io/metacubexd/')
+end)
+
+bind({ 'option' }, 'N', function()
+  toggleWifiProxy()
 end)
 
 -- print all running application bundleID
