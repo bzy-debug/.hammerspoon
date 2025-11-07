@@ -157,7 +157,8 @@ wm.floatApps = {
   'com.xunlei.Thunder',
   'com.west2online.ClashXPro',
   'io.mpv',
-  'com.apple.ScreenContinuity'
+  'com.apple.ScreenContinuity',
+  'com.apple.mail'
 }
 
 
@@ -180,6 +181,6 @@ elseif hostName == "bzy-mbp-16-office" then
   helloMsg = 'Office Config loaded'
 end
 
-wm:init()
+-- wm:init()
 
 quickAlert(helloMsg)
