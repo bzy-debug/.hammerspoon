@@ -6,8 +6,11 @@ hs.loadSpoon('BingDaily')
 
 spoon.BingDaily.uhd_resolution = true
 
-local http = require('hs.http')
-local json = require('hs.json')
+local http = hs.http
+local json = hs.json
+local aerospace = require('aerospace')
+
+aerospace:init()
 
 ---@return string hostname
 local function getLocalHostName()
@@ -82,6 +85,7 @@ end
 local bind = hs.hotkey.bind
 
 bind({ 'option' }, 'R', function()
+  aerospace.reload_config()
   hs.reload()
 end)
 
@@ -137,50 +141,11 @@ hs.window.animationDuration = 0
 
 local helloMsg = 'Config loaded'
 
-local wm = require('wm')
-
-wm.margin = 5
-
-wm.workspaces = { 'U', 'I', 'O', 'P', '7', '8', '9', '0' }
-
-wm.floatWindows = {
-  'Picture-in-Picture',
-}
-
-wm.floatApps = {
-  'com.apple.systempreferences',
-  'com.apple.SystemProfiler',
-  'com.apple.Passwords',
-  'com.apple.FollowUpUI',
-  'com.apple.LocalAuthentication.UIAgent',
-  'com.apple.reminders',
-  'com.xunlei.Thunder',
-  'com.west2online.ClashXPro',
-  'io.mpv',
-  'com.apple.ScreenContinuity',
-  'com.apple.mail'
-}
-
 
 if hostName == "bzy-mbp-home" then
-  -- load home config
-
-  wm.appWorkspace = {
-    ['org.gnu.Emacs'] = '7',
-  }
-
-
   helloMsg = 'Home Config loaded'
 elseif hostName == "bzy-mbp-16-office" then
-  wm.appWorkspace = {
-    ['com.apple.Music'] = '7',
-    ['com.tencent.WeWorkMac'] = '8',
-    ['org.gnu.Emacs'] = '9',
-  }
-
   helloMsg = 'Office Config loaded'
 end
-
--- wm:init()
 
 quickAlert(helloMsg)

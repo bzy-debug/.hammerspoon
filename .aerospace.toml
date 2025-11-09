@@ -15,7 +15,7 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 # See: https://nikitabobko.github.io/AeroSpace/guide#layouts
 # The 'accordion-padding' specifies the size of accordion padding
 # You can set 0 to disable the padding feature
-accordion-padding = 5
+accordion-padding = 30
 
 # Possible values: tiles|accordion
 default-root-container-layout = 'tiles'
@@ -118,7 +118,56 @@ alt-shift-h = ['move left', 'mode main']
 alt-shift-j = ['move down', 'mode main']
 alt-shift-k = ['move up', 'mode main']
 alt-shift-l = ['move right', 'mode main']
-cmd-alt-h = ['join-with left', 'mode main']
-cmd-alt-j = ['join-with down', 'mode main']
-cmd-alt-k = ['join-with up', 'mode main']
-cmd-alt-l = ['join-with right', 'mode main']
+ctrl-alt-h = ['join-with left', 'mode main']
+ctrl-alt-j = ['join-with down', 'mode main']
+ctrl-alt-k = ['join-with up', 'mode main']
+ctrl-alt-l = ['join-with right', 'mode main']
+
+alt-w = 'close'
+alt-e = 'fullscreen'
+alt-equal = 'resize smart +200'
+alt-minus = 'resize smart -200'
+
+[[on-window-detected]]
+if.window-title-regex-substring = 'Picture-in-Picture'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.systempreferences'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.SystemProfiler'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Passwords'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.FollowUpUI'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.LocalAuthentication.UIAgent'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.reminders'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.xunlei.Thunder'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'io.mpv'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.ScreenContinuity'
+run = ['layout floating']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.mail'
+run = ['layout floating']
