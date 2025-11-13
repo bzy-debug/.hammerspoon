@@ -32,6 +32,16 @@ default-root-container-orientation = 'auto'
 # Fallback value (if you omit the key): on-focused-monitor-changed = []
 on-focused-monitor-changed = []
 
+# Execute shell script on workspace change
+# See https://nikitabobko.github.io/AeroSpace/guide#exec-on-workspace-change
+exec-on-workspace-change = [
+  '/bin/bash',
+  '-c',
+  '''
+  aerospace move-node-to-workspace --window-id $(aerospace list-windows --all --json | jq '.[] | select(.["app-name"] == "iPhone Mirroring") | .["window-id"]') "$AEROSPACE_FOCUSED_WORKSPACE"
+  ''',
+]
+
 # You can effectively turn off macOS "Hide application" (cmd-h) feature by toggling this flag
 # Useful if you don't use this macOS feature, but accidentally hit cmd-h or cmd-alt-h key
 # Also see: https://nikitabobko.github.io/AeroSpace/goodies#disable-hide-app
@@ -127,6 +137,7 @@ alt-w = 'close'
 alt-e = 'fullscreen'
 alt-equal = 'resize smart +200'
 alt-minus = 'resize smart -200'
+
 
 [[on-window-detected]]
 if.window-title-regex-substring = 'Picture-in-Picture'
