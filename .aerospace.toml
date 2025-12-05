@@ -135,6 +135,7 @@ ctrl-alt-l = ['join-with right', 'mode main']
 
 alt-w = 'close'
 alt-e = 'fullscreen'
+alt-f = 'layout floating tiling'
 alt-equal = 'resize smart +200'
 alt-minus = 'resize smart -200'
 
