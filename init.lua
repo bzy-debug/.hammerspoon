@@ -137,10 +137,74 @@ end)
 
 spoon.LeftRightHotkey:start()
 
-hs.window.animationDuration = 0
+-- Mihomo Traffic Monitor
+local trafficMenubar = hs.menubar.new(true, 'hs.mihomo.trafficMenubar')
+local trafficTask = nil
+
+
+local function formatBytes(bytes)
+  if bytes < 1024 then
+    return string.format("%5.0fB", bytes)
+  elseif bytes < 1024 * 1024 then
+    return string.format("%5.1fK", bytes / 1024)
+  elseif bytes < 1024 * 1024 * 1024 then
+    return string.format("%5.1fM", bytes / (1024 * 1024))
+  else
+    return string.format("%5.1fG", bytes / (1024 * 1024 * 1024))
+  end
+end
+
+---@param up number kilobits per second
+---@param down number kilobits per second
+---@return hs.styledtext | string
+local function formatTraffic(up, down)
+  local content = string.format("⬆️%s ⬇️%s", formatBytes(up), formatBytes(down))
+  return hs.styledtext.new(content, {
+    font = { name = "Sarasa Term SC Nerd" }
+  }) or content
+end
+
+local function startTrafficMonitor()
+  if trafficTask then
+    trafficTask:terminate()
+  end
+
+  trafficTask = hs.task.new("/usr/bin/curl", function(exitCode, stdout, stderr)
+    -- Task terminated
+    if exitCode ~= 0 and trafficMenubar then
+      trafficMenubar:setTitle("⚠️ Error")
+    end
+  end, function(task, stdout, stderr)
+    if stdout and stdout ~= "" and trafficMenubar then
+      local success, data = pcall(json.decode, stdout)
+      if success and data and data.up and data.down then
+        local title = formatTraffic(data.up, data.down)
+        trafficMenubar:setTitle(title)
+      end
+    end
+    return true
+  end, { "--no-buffer", "http://127.0.0.1:9090/traffic" })
+
+  trafficTask:start()
+end
+
+if trafficMenubar then
+  trafficMenubar:setTitle("Loading...")
+  trafficMenubar:setMenu({
+    { title = "Restart Monitor", fn = startTrafficMonitor },
+    { title = "-" },
+    {
+      title = "Open Mihomo Dashboard",
+      fn = function()
+        hs.urlevent.openURL('https://metacubex.github.io/metacubexd/')
+      end
+    }
+  })
+
+  startTrafficMonitor()
+end
 
 local helloMsg = 'Config loaded'
-
 
 if hostName == "bzy-mbp-home" then
   helloMsg = 'Home Config loaded'
