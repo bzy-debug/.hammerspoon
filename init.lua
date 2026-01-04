@@ -130,7 +130,11 @@ spoon.LeftRightHotkey:bind({ 'rShift' }, 'c', function()
 end)
 
 spoon.LeftRightHotkey:bind({ 'rShift' }, 'f', function()
-  hs.execute("open -n '/Applications/Firefox.app'", true)
+  hs.execute("open -n '/Applications/Firefox.app' --args -P 'default'", true)
+end)
+
+spoon.LeftRightHotkey:bind({ 'rShift' }, 'a', function()
+  hs.execute("open -n '/Applications/Firefox.app' --args -P 'anonymous'", true)
 end)
 
 spoon.LeftRightHotkey:start()
