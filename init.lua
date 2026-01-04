@@ -1,5 +1,3 @@
--- checkout https://github.com/Hammerspoon/hammerspoon/issues/3712 and patch hammerspoon first
-
 hs.loadSpoon('EmmyLua')
 hs.loadSpoon('LeftRightHotkey')
 hs.loadSpoon('BingDaily')
@@ -131,8 +129,8 @@ spoon.LeftRightHotkey:bind({ 'rShift' }, 'c', function()
   hs.execute('c --new-window', true)
 end)
 
-spoon.LeftRightHotkey:bind({ 'rShift' }, 'z', function()
-  hs.execute("open -n '/Applications/Zen.app'", true)
+spoon.LeftRightHotkey:bind({ 'rShift' }, 'f', function()
+  hs.execute("open -n '/Applications/Firefox.app'", true)
 end)
 
 spoon.LeftRightHotkey:start()

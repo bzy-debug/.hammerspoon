@@ -23,7 +23,7 @@ default-root-container-layout = 'tiles'
 # Possible values: horizontal|vertical|auto
 # 'auto' means: wide monitor (anything wider than high) gets horizontal orientation,
 #               tall monitor (anything higher than wide) gets vertical orientation
-default-root-container-orientation = 'auto'
+default-root-container-orientation = 'horizontal'
 
 # Mouse follows focus when focused monitor changes
 # Drop it from your config, if you don't like this behavior
@@ -38,7 +38,7 @@ exec-on-workspace-change = [
   '/bin/bash',
   '-c',
   '''
-  aerospace move-node-to-workspace --window-id $(aerospace list-windows --all --json | jq '.[] | select(.["app-name"] == "iPhone Mirroring") | .["window-id"]') "$AEROSPACE_FOCUSED_WORKSPACE"
+  aerospace move-node-to-workspace --window-id $(aerospace list-windows --all --json | jq '.[] | select(.["app-name"] | IN("iPhone镜像", "iPhone Mirroring")) | .["window-id"]') "$AEROSPACE_FOCUSED_WORKSPACE"
   ''',
 ]
 
@@ -133,6 +133,7 @@ ctrl-alt-j = ['join-with down', 'mode main']
 ctrl-alt-k = ['join-with up', 'mode main']
 ctrl-alt-l = ['join-with right', 'mode main']
 
+alt-t = 'layout tiles accordion'
 alt-w = 'close'
 alt-e = 'fullscreen'
 alt-shift-f = 'layout floating tiling'
